@@ -1,12 +1,26 @@
 # from selenium.webdriver import Chrome
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+import json
 import time
 from configparser import ConfigParser
+
+from selenium import webdriver
+
+
+try:
+    from types import SimpleNamespace as Namespace
+except ImportError:
+    # Python 2.x fallback
+    from argparse import Namespace
 
 
 groups_tlv_fname = "../groups_tlv"
 posts_tlv_fname = "../posts_tlv"
+posts_json_file = "../posts_tlv_json"
+
+class Post:
+    def __init__(self, text, img):
+        self.text = text
+        self.img = img
 
 
 def get_credentials_from_file():
@@ -33,8 +47,10 @@ def post_to_groups(driver, groups_tlv, posts_tlv):
             # time.sleep(6)
             # driver.find_element_by_xpath("//div[@aria-label=\"Photo/Video\"][@role=\"button\"]").click()
             driver.find_element_by_xpath("//div[@data-pagelet=\"GroupInlineComposer\"]//input")\
-                .send_keys(posts_tlv[j])
+                .send_keys(posts_tlv[j].img)
             print("file name: ", posts_tlv[j])
+            time.sleep(3)
+            driver.find_element_by_xpath("//form[@method=\"POST\"]//div[@role=\"presentation\"]//span").send_keys(posts_tlv[j].text)
 
             time.sleep(3)
             driver.find_element_by_xpath("//div[@aria-label=\"Post\"]").click()
@@ -56,8 +72,9 @@ def post():
 
         login(driver, pwd, user)
         groups_tlv = read_groups_from_file(groups_tlv_fname)
-        posts_tlv = read_groups_from_file(posts_tlv_fname)
+        # posts_tlv = read_groups_from_file(posts_tlv_fname)
 
+        posts_tlv = posts_json()
         post_to_groups(driver, groups_tlv, posts_tlv)
         driver.close()
 
@@ -84,6 +101,18 @@ def login(driver, pwd, user):
     driver.find_element_by_name("login").click()
 
     time.sleep(10)
+
+
+def post_decoder(obj):
+    print("post decoder")
+    return Post(obj['text'], obj['path'])
+
+
+def posts_json():
+    with open(posts_json_file, "r", encoding="utf8") as f:
+        post_obj = json.load(f, object_hook=post_decoder)
+        print(post_obj)
+        return post_obj
 
 
 if __name__ == "__main__":
